@@ -1,0 +1,192 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import { Shield, Sparkles, AlertCircle, ArrowRight, Lock, Users, Layers, CreditCard } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+export const Login: React.FC = () => {
+  const { loginWithGoogle, loginWithDev, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [devEmail, setDevEmail] = useState('');
+  const [showDevLogin, setShowDevLogin] = useState(false);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError(null);
+    setLoading(true);
+    try {
+      if (!credentialResponse.credential) {
+        throw new Error('Google did not return a valid credential');
+      }
+      await loginWithGoogle(credentialResponse.credential);
+      navigate('/');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Google authorization failed';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Failed to authenticate with Google. Please try again or check OAuth configuration.');
+  };
+
+  const handleDevLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!devEmail) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithDev(devEmail);
+      navigate('/');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Dev login failed';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasGoogleClientId = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-6 relative overflow-hidden font-sans">
+      {/* Subtle background glow accents */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-100/50 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-indigo-100/50 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Top Brand Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-teal-500 p-0.5 shadow-lg shadow-brand-500/20 mb-4">
+            <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+              <Shield className="w-7 h-7 text-brand-600" />
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+            TransfiNITTe Admin
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Restricted Operations & Event Administration Portal
+          </p>
+        </div>
+
+        {/* Login Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-8 shadow-card relative">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 mb-6 text-xs text-slate-600 font-medium">
+            <Lock className="w-3.5 h-3.5 text-brand-600" />
+            <span>Role-Based Access Control (RBAC) Enforced</span>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold mb-0.5">Authorization Error</p>
+                <p className="text-rose-600 leading-relaxed font-medium">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Google Sign In Section */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-slate-700">Sign in with authorized Google Account</p>
+
+            {hasGoogleClientId ? (
+              <div className="flex justify-center w-full py-1">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  shape="pill"
+                  size="large"
+                  text="signin_with"
+                  width="360"
+                />
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                <p className="font-bold mb-1">Google Client ID Not Set</p>
+                <p className="text-amber-700 leading-relaxed mb-2 font-medium">
+                  Set <code className="px-1 py-0.5 bg-white border border-amber-200 rounded font-mono text-amber-900">VITE_GOOGLE_CLIENT_ID</code> in <code className="font-mono">.env</code> for full Google OAuth. You can use Quick Admin Sign-In below.
+                </p>
+              </div>
+            )}
+
+            {/* Quick Admin / Dev Login fallback */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDevLogin(!showDevLogin)}
+                className="w-full text-xs text-slate-500 hover:text-brand-600 font-semibold transition-colors py-2 flex items-center justify-center gap-1"
+              >
+                <span>{showDevLogin ? 'Hide Quick Sign-In' : 'Direct Email Sign-In (Local/Dev)'}</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+
+              {showDevLogin && (
+                <form onSubmit={handleDevLoginSubmit} className="mt-3 space-y-3 pt-3 border-t border-slate-100">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Authorized Admin Email
+                    </label>
+                    <input
+                      type="email"
+                      value={devEmail}
+                      onChange={(e) => setDevEmail(e.target.value)}
+                      placeholder="e.g. admin@transfinitte.com"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors font-medium"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition-all shadow-soft disabled:opacity-50"
+                  >
+                    {loading ? 'Authenticating...' : 'Sign In as Admin'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+              Management Modules
+            </h4>
+            <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-600 font-semibold">
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+                <Users className="w-4 h-4 text-brand-600 mb-1" />
+                <span>Users</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+                <Layers className="w-4 h-4 text-indigo-600 mb-1" />
+                <span>Teams</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+                <CreditCard className="w-4 h-4 text-emerald-600 mb-1" />
+                <span>Payments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-slate-400 font-medium mt-6">
+          TransfiNITTe 2025 &bull; Department of Technical Affairs
+        </p>
+      </div>
+    </div>
+  );
+};
