@@ -465,7 +465,7 @@ export const AdminsPage: React.FC = () => {
                     />
                     <div className="flex items-center gap-2">
                       <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                      <span><strong>Payment Management:</strong> Audit & approve manual verifications</span>
+                      <span><strong>Payment Management:</strong> Audit and review transaction records</span>
                     </div>
                   </label>
 
@@ -570,7 +570,7 @@ export const AdminsPage: React.FC = () => {
                     onChange={(e) => setEditAdminData({ ...editAdminData, can_manage_payments: e.target.checked })}
                     className="w-4 h-4 text-brand-600 bg-white border-slate-300 rounded focus:ring-brand-500"
                   />
-                  <span>Payment Reconciliation & Approvals</span>
+                  <span>Payment Transactions & Auditing</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 text-xs text-slate-700 font-medium cursor-pointer">

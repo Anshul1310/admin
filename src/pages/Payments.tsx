@@ -4,13 +4,11 @@ import {
   Search,
   Filter,
   Download,
-  Plus,
   Loader2,
   Copy,
   Check,
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
-import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/Badge';
 import { EmptyState } from '../components/EmptyState';
 import { api } from '../lib/api';
@@ -24,17 +22,6 @@ export const PaymentsPage: React.FC = () => {
   // Search & Filter
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-
-  // Manual Verify Modal
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [manualFormData, setManualFormData] = useState({
-    team_id: '',
-    amount: 200,
-    payment_status: 'SUCCESS',
-    transaction_id: '',
-    notes: 'Verified by administrator',
-  });
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -78,64 +65,19 @@ export const PaymentsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [fetchPayments]);
 
-  const handleManualVerifySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualFormData.team_id.trim()) {
-      showNotification('error', 'Team ID is required');
-      return;
-    }
-    setIsVerifying(true);
-    try {
-      const res = await api.payments.verifyManual({
-        team_id: manualFormData.team_id.trim(),
-        amount: Number(manualFormData.amount) || 200,
-        payment_status: manualFormData.payment_status,
-        transaction_id: manualFormData.transaction_id.trim() || 'MANUAL_' + Date.now(),
-        notes: manualFormData.notes,
-      });
-
-      if (res.success) {
-        showNotification('success', `Payment verified for squad ${manualFormData.team_id}`);
-        setIsManualModalOpen(false);
-        setManualFormData({
-          team_id: '',
-          amount: 200,
-          payment_status: 'SUCCESS',
-          transaction_id: '',
-          notes: 'Verified by administrator',
-        });
-        fetchPayments(1);
-      }
-    } catch (err: any) {
-      showNotification('error', err.response?.data?.message || 'Failed to verify payment');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col min-h-screen">
       <Navbar
-        title="Payment Reconciliation"
-        subtitle={`Tracking Cashfree checkout orders and manual payment logs (${pagination.total} records)`}
+        title="Payment Transactions"
+        subtitle={`Tracking all payment gateway checkout orders and transactions (${pagination.total} records)`}
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => api.payments.downloadCsv()}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-soft"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              onClick={() => setIsManualModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition-all shadow-soft"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Manual Verification</span>
-            </button>
-          </div>
+          <button
+            onClick={() => api.payments.downloadCsv()}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white transition-all shadow-soft"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         }
       />
 
@@ -164,7 +106,7 @@ export const PaymentsPage: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by order ID, team ID, squad name, transaction ID, or participant email..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors font-medium"
             />
           </div>
 
@@ -221,7 +163,7 @@ export const PaymentsPage: React.FC = () => {
                     <td colSpan={7} className="py-12 text-center text-slate-500">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-6 h-6 text-brand-600 animate-spin" />
-                        <span className="font-medium">Fetching payment reconciliation logs...</span>
+                        <span className="font-medium">Fetching payment transaction logs...</span>
                       </div>
                     </td>
                   </tr>
@@ -232,10 +174,6 @@ export const PaymentsPage: React.FC = () => {
                         icon={CreditCard}
                         title="No payment logs found"
                         description="No transactions match your current search or filter query."
-                        action={{
-                          label: 'Record Manual Payment',
-                          onClick: () => setIsManualModalOpen(true),
-                        }}
                       />
                     </td>
                   </tr>
@@ -283,7 +221,7 @@ export const PaymentsPage: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600 font-medium">
-                        {p.transaction_id || <span className="italic text-slate-400 font-normal">Automated Webhook</span>}
+                        {p.transaction_id || <span className="italic text-slate-400 font-normal">Automated Gateway</span>}
                         {p.raw_webhook_data && (
                           <span className="block text-[10px] text-slate-500 truncate max-w-xs">{p.raw_webhook_data}</span>
                         )}
@@ -329,102 +267,6 @@ export const PaymentsPage: React.FC = () => {
           )}
         </div>
       </main>
-
-      {/* Manual Verify Modal */}
-      {isManualModalOpen && (
-        <Modal
-          isOpen={isManualModalOpen}
-          onClose={() => setIsManualModalOpen(false)}
-          title="Manual Payment Verification"
-          subtitle="Record an offline payment (UPI, Cash, or Waiver) and approve the squad"
-          maxWidth="md"
-        >
-          <form onSubmit={handleManualVerifySubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Target Team ID / Code <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={manualFormData.team_id}
-                onChange={(e) => setManualFormData({ ...manualFormData, team_id: e.target.value })}
-                placeholder="e.g. TEAM-ABC12345"
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-mono font-medium"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Amount (INR)</label>
-                <input
-                  type="number"
-                  value={manualFormData.amount}
-                  onChange={(e) => setManualFormData({ ...manualFormData, amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Status</label>
-                <select
-                  value={manualFormData.payment_status}
-                  onChange={(e) => setManualFormData({ ...manualFormData, payment_status: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                >
-                  <option value="SUCCESS">SUCCESS / PAID</option>
-                  <option value="WAIVED">WAIVED (FREE ENTRY)</option>
-                  <option value="REJECTED">REJECTED</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Transaction Ref / UPI UTR
-              </label>
-              <input
-                type="text"
-                value={manualFormData.transaction_id}
-                onChange={(e) => setManualFormData({ ...manualFormData, transaction_id: e.target.value })}
-                placeholder="e.g. UPI/1234567890/SBI"
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-mono font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Audit Notes / Approval Reason
-              </label>
-              <textarea
-                rows={2}
-                value={manualFormData.notes}
-                onChange={(e) => setManualFormData({ ...manualFormData, notes: e.target.value })}
-                placeholder="e.g. Paid in cash to Tech Affairs Lead at desk"
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-              />
-            </div>
-
-            <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsManualModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isVerifying}
-                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-soft disabled:opacity-50"
-              >
-                {isVerifying ? 'Confirming...' : 'Confirm Verification'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 };
