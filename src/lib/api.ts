@@ -110,10 +110,6 @@ export const api = {
       const { data } = await apiClient.get<ApiResponse<Team>>(`/api/admin/teams/${id}`);
       return data;
     },
-    create: async (payload: Partial<Team>) => {
-      const { data } = await apiClient.post<ApiResponse<Team>>('/api/admin/teams', payload);
-      return data;
-    },
     update: async (id: string, payload: Partial<Team>) => {
       const { data } = await apiClient.put<ApiResponse>(`/api/admin/teams/${id}`, payload);
       return data;

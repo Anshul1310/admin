@@ -4,10 +4,8 @@ import {
   Search,
   Filter,
   Download,
-  Plus,
   Edit2,
   Trash2,
-  Eye,
   UserPlus,
   UserMinus,
   Crown,
@@ -16,6 +14,8 @@ import {
   Globe,
   Lock,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
@@ -27,7 +27,7 @@ import type { Team, Pagination } from '../types';
 
 export const TeamsPage: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 15, pages: 1 });
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, pages: 1 });
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -38,16 +38,6 @@ export const TeamsPage: React.FC = () => {
 
   // Modals & Drawers
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
-
-  const [creatingTeam, setCreatingTeam] = useState(false);
-  const [createFormData, setCreateFormData] = useState({
-    name: '',
-    contact: '',
-    domain: 'Web Development',
-    problem_statement: '',
-    payment_status: 'Pending',
-    ispublic: false,
-  });
 
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Team>>({});
@@ -81,7 +71,7 @@ export const TeamsPage: React.FC = () => {
         payment_status: paymentFilter || undefined,
         is_public: visibilityFilter || undefined,
         page: pageToLoad,
-        limit: 15,
+        limit: 10,
       });
 
       if (res.success && res.data) {
@@ -110,28 +100,6 @@ export const TeamsPage: React.FC = () => {
       }
     } catch {
       showNotification('error', 'Failed to load team details');
-    }
-  };
-
-  const handleCreateTeamSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await api.teams.create(createFormData);
-      if (res.success) {
-        showNotification('success', 'New team created successfully');
-        setCreatingTeam(false);
-        setCreateFormData({
-          name: '',
-          contact: '',
-          domain: 'Web Development',
-          problem_statement: '',
-          payment_status: 'Pending',
-          ispublic: false,
-        });
-        fetchTeams(1);
-      }
-    } catch (err: any) {
-      showNotification('error', err.response?.data?.message || 'Failed to create team');
     }
   };
 
@@ -237,23 +205,13 @@ export const TeamsPage: React.FC = () => {
         title="Team Operations"
         subtitle={`Managing ${pagination.total} registered squads across tracks`}
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => api.teams.downloadCsv()}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-soft"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              onClick={() => setCreatingTeam(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white transition-all shadow-soft"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Squad</span>
-            </button>
-          </div>
+          <button
+            onClick={() => api.teams.downloadCsv()}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white transition-all shadow-soft"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         }
       />
 
@@ -363,11 +321,7 @@ export const TeamsPage: React.FC = () => {
                       <EmptyState
                         icon={LayersIcon}
                         title="No teams matching criteria"
-                        description="Try modifying search keywords or create a new squad manually."
-                        action={{
-                          label: 'Create Squad',
-                          onClick: () => setCreatingTeam(true),
-                        }}
+                        description="No squads match your active search or filter query."
                       />
                     </td>
                   </tr>
@@ -378,7 +332,13 @@ export const TeamsPage: React.FC = () => {
                       <tr key={team.team_id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-3.5 px-5">
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{team.name}</p>
+                            <p
+                              onClick={() => loadTeamDetails(team.team_id)}
+                              title="Click to inspect and manage squad roster"
+                              className="font-bold text-slate-900 text-sm hover:text-brand-600 cursor-pointer transition-colors"
+                            >
+                              {team.name}
+                            </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="font-mono text-[11px] text-slate-500 font-medium">{team.team_id}</span>
                               <button
@@ -452,13 +412,6 @@ export const TeamsPage: React.FC = () => {
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => loadTeamDetails(team.team_id)}
-                              title="Inspect Squad & Members"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                            <button
                               onClick={() => {
                                 setEditingTeam(team);
                                 setEditFormData({
@@ -493,26 +446,54 @@ export const TeamsPage: React.FC = () => {
           </div>
 
           {/* Pagination Footer */}
-          {pagination.pages > 1 && (
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+          {pagination.total > 0 && (
+            <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
               <span>
-                Page <strong className="text-slate-900 font-bold">{pagination.page}</strong> of <strong className="text-slate-900 font-bold">{pagination.pages}</strong> ({pagination.total} teams)
+                Showing <strong className="text-slate-900 font-bold">{(pagination.page - 1) * pagination.limit + 1}</strong> to{' '}
+                <strong className="text-slate-900 font-bold">{Math.min(pagination.page * pagination.limit, pagination.total)}</strong> of{' '}
+                <strong className="text-slate-900 font-bold">{pagination.total}</strong> squads
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => fetchTeams(pagination.page - 1)}
                   disabled={pagination.page <= 1}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
                 >
-                  Previous
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Previous</span>
                 </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === pagination.pages || Math.abs(p - pagination.page) <= 1)
+                    .map((p, idx, arr) => {
+                      const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {showEllipsisBefore && <span className="px-1 text-slate-400">...</span>}
+                          <button
+                            onClick={() => fetchTeams(p)}
+                            className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${
+                              p === pagination.page
+                                ? 'bg-brand-600 text-white shadow-soft'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
                 <button
                   onClick={() => fetchTeams(pagination.page + 1)}
                   disabled={pagination.page >= pagination.pages}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
                 >
-                  Next
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -645,114 +626,6 @@ export const TeamsPage: React.FC = () => {
         </Modal>
       )}
 
-      {/* Create Team Modal */}
-      {creatingTeam && (
-        <Modal
-          isOpen={creatingTeam}
-          onClose={() => setCreatingTeam(false)}
-          title="Create New Team Squad"
-          subtitle="Directly provision a new squad in the database"
-          maxWidth="md"
-        >
-          <form onSubmit={handleCreateTeamSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Squad Name</label>
-              <input
-                type="text"
-                value={createFormData.name}
-                onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                placeholder="e.g. Code Ninjas"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Contact Phone</label>
-              <input
-                type="text"
-                value={createFormData.contact}
-                onChange={(e) => setCreateFormData({ ...createFormData, contact: e.target.value })}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                placeholder="+91 9876543210"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Domain Track</label>
-                <select
-                  value={createFormData.domain}
-                  onChange={(e) => setCreateFormData({ ...createFormData, domain: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                >
-                  <option value="Web Development">Web Development</option>
-                  <option value="App Development">App Development</option>
-                  <option value="AI / ML">AI / ML</option>
-                  <option value="Cybersecurity">Cybersecurity</option>
-                  <option value="Blockchain / Web3">Blockchain / Web3</option>
-                  <option value="IoT & Embedded">IoT & Embedded</option>
-                  <option value="Open Track">Open Track</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Payment Status</label>
-                <select
-                  value={createFormData.payment_status}
-                  onChange={(e) => setCreateFormData({ ...createFormData, payment_status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Paid">Paid / Waived</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Problem Statement / Topic</label>
-              <textarea
-                rows={2}
-                value={createFormData.problem_statement}
-                onChange={(e) => setCreateFormData({ ...createFormData, problem_statement: e.target.value })}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
-                placeholder="Brief summary of their hackathon problem statement..."
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                id="ispublic-check"
-                checked={createFormData.ispublic}
-                onChange={(e) => setCreateFormData({ ...createFormData, ispublic: e.target.checked })}
-                className="w-4 h-4 text-brand-600 bg-slate-50 border-slate-300 rounded focus:ring-brand-500"
-              />
-              <label htmlFor="ispublic-check" className="text-xs text-slate-700 font-medium cursor-pointer">
-                Public Squad Listing (allows participants to request to join)
-              </label>
-            </div>
-
-            <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setCreatingTeam(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition-all shadow-soft"
-              >
-                Create Squad
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
       {/* Edit Team Modal */}
       {editingTeam && (
         <Modal
@@ -801,7 +674,7 @@ export const TeamsPage: React.FC = () => {
                 <select
                   value={editFormData.payment_status || 'Pending'}
                   onChange={(e) => setEditFormData({ ...editFormData, payment_status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500 font-medium"
                 >
                   <option value="Paid">Paid</option>
                   <option value="Pending">Pending</option>

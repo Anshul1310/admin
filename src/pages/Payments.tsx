@@ -7,6 +7,8 @@ import {
   Loader2,
   Copy,
   Check,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { StatusBadge } from '../components/Badge';
@@ -16,7 +18,7 @@ import type { Payment, Pagination } from '../types';
 
 export const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 15, pages: 1 });
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, pages: 1 });
   const [loading, setLoading] = useState(true);
 
   // Search & Filter
@@ -44,7 +46,7 @@ export const PaymentsPage: React.FC = () => {
         search: search.trim() || undefined,
         status: statusFilter || undefined,
         page: pageToLoad,
-        limit: 15,
+        limit: 10,
       });
 
       if (res.success && res.data) {
@@ -241,26 +243,54 @@ export const PaymentsPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {pagination.pages > 1 && (
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+          {pagination.total > 0 && (
+            <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
               <span>
-                Showing page <strong className="text-slate-900 font-bold">{pagination.page}</strong> of <strong className="text-slate-900 font-bold">{pagination.pages}</strong> ({pagination.total} records)
+                Showing <strong className="text-slate-900 font-bold">{(pagination.page - 1) * pagination.limit + 1}</strong> to{' '}
+                <strong className="text-slate-900 font-bold">{Math.min(pagination.page * pagination.limit, pagination.total)}</strong> of{' '}
+                <strong className="text-slate-900 font-bold">{pagination.total}</strong> records
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => fetchPayments(pagination.page - 1)}
                   disabled={pagination.page <= 1}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
                 >
-                  Previous
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Previous</span>
                 </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === pagination.pages || Math.abs(p - pagination.page) <= 1)
+                    .map((p, idx, arr) => {
+                      const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {showEllipsisBefore && <span className="px-1 text-slate-400">...</span>}
+                          <button
+                            onClick={() => fetchPayments(p)}
+                            className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${
+                              p === pagination.page
+                                ? 'bg-brand-600 text-white shadow-soft'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
                 <button
                   onClick={() => fetchPayments(pagination.page + 1)}
                   disabled={pagination.page >= pagination.pages}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
                 >
-                  Next
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
